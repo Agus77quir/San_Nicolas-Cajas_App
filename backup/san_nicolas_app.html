@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>San Nicolás · Gestión Agencia</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2535;
+    --bg4: #252d3e;
+    --border: #2a334a;
+    --border2: #344060;
+    --text: #e8ecf4;
+    --text2: #8e99b5;
+    --text3: #596175;
+    --blue: #3d8ef8;
+    --blue2: #1a5fd4;
+    --blue-light: #1a2c4e;
+    --green: #2ec98a;
+    --green-light: #0f2e20;
+    --red: #f05252;
+    --red-light: #2e1212;
+    --amber: #f59e0b;
+    --amber-light: #2d1f05;
+    --purple: #a78bfa;
+    --purple-light: #1e1640;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 2px 16px rgba(0,0,0,.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px; min-height: 100vh; background: var(--bg2);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; height: 100vh; z-index: 10;
+  }
+  .sidebar-logo {
+    padding: 1.5rem 1.25rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo .brand { font-size: 16px; font-weight: 700; color: var(--blue); letter-spacing: -.3px; }
+  .sidebar-logo .sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .sidebar-logo .date-badge {
+    display: inline-block; margin-top: 8px;
+    background: var(--blue-light); color: var(--blue);
+    font-size: 10px; padding: 3px 8px; border-radius: 99px; font-weight: 600;
+  }
+  .nav { padding: 0.75rem 0; flex: 1; }
+  .nav-section { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .1em; padding: 0.75rem 1.25rem 0.25rem; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0.6rem 1.25rem; cursor: pointer; font-size: 13px; color: var(--text2);
+    border-left: 3px solid transparent; transition: all .15s;
+  }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--blue); background: var(--blue-light); border-left-color: var(--blue); font-weight: 600; }
+  .nav-icon { width: 16px; height: 16px; opacity: .7; flex-shrink: 0; }
+  .nav-item.active .nav-icon { opacity: 1; }
+  .sidebar-footer { padding: 1rem 1.25rem; border-top: 1px solid var(--border); font-size: 11px; color: var(--text3); }
+
+  /* MAIN */
+  .main { margin-left: 220px; flex: 1; min-height: 100vh; }
+  .topbar {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 0 1.75rem; height: 56px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .topbar-title { font-size: 15px; font-weight: 600; }
+  .topbar-meta { font-size: 12px; color: var(--text3); }
+  .page { padding: 1.75rem; display: none; }
+  .page.active { display: block; }
+
+  /* KPI GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 1.75rem; }
+  .kpi-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.25rem;
+  }
+  .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 6px; }
+  .kpi-value { font-size: 24px; font-weight: 700; letter-spacing: -.5px; }
+  .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .kpi-card.blue .kpi-value { color: var(--blue); }
+  .kpi-card.green .kpi-value { color: var(--green); }
+  .kpi-card.red .kpi-value { color: var(--red); }
+  .kpi-card.amber .kpi-value { color: var(--amber); }
+  .kpi-card.purple .kpi-value { color: var(--purple); }
+  .kpi-bar { height: 3px; border-radius: 99px; margin-top: 10px; background: var(--bg4); overflow: hidden; }
+  .kpi-bar-fill { height: 100%; border-radius: 99px; }
+
+  /* CHARTS */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.75rem; }
+  .chart-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.25rem;
+  }
+  .chart-card.full { grid-column: 1/-1; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .05em; }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* TABLES */
+  .table-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; margin-bottom: 1.5rem;
+  }
+  .table-header {
+    padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-header-title { font-size: 14px; font-weight: 600; }
+  .table-header-meta { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .table-controls { display: flex; gap: 8px; align-items: center; }
+  .search-input, .filter-select {
+    background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
+    border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12px; font-family: inherit;
+    outline: none;
+  }
+  .search-input:focus, .filter-select:focus { border-color: var(--blue); }
+  .filter-select option { background: var(--bg3); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--bg3); padding: 9px 14px; text-align: left;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text3); border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  tbody td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg3); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+  tfoot td { padding: 9px 14px; background: var(--bg3); font-weight: 700; border-top: 1px solid var(--border2); font-size: 13px; }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); }
+  .badge-blue { background: var(--blue-light); color: var(--blue); }
+  .badge-purple { background: var(--purple-light); color: var(--purple); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px;
+    font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: all .15s;
+  }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: var(--blue2); }
+  .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #5a1a1a; }
+  .btn-danger:hover { background: #3e1010; }
+  .btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg4); color: var(--text); }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  /* FORMS */
+  .form-page { max-width: 720px; }
+  .form-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.75rem; margin-bottom: 1.5rem;
+  }
+  .form-card-title { font-size: 15px; font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); }
+  input, select, textarea {
+    background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
+    border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; font-family: inherit; outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(61,142,248,.15); }
+  select option { background: var(--bg3); }
+  .form-actions { display: flex; gap: 10px; margin-top: 0.5rem; }
+  .form-alert { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 1rem; }
+  .form-alert.success { background: var(--green-light); color: var(--green); border: 1px solid #0f4025; }
+  .form-alert.error { background: var(--red-light); color: var(--red); border: 1px solid #5a1a1a; }
+  .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+
+  /* CAJA SUMMARY */
+  .caja-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .caja-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.25rem;
+  }
+  .caja-empresa { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text3); margin-bottom: 4px; }
+  .caja-tipo { font-size: 12px; color: var(--text3); margin-bottom: 6px; }
+  .caja-monto { font-size: 22px; font-weight: 700; }
+
+  /* MODAL */
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
+  .modal-backdrop.open { display: flex; }
+  .modal-box {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 1.75rem; width: 420px; max-width: 95vw;
+    box-shadow: var(--shadow);
+  }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 1.25rem; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.25rem; }
+
+  /* DELETE btn in row */
+  .row-del { background: none; border: none; color: var(--text3); cursor: pointer; padding: 3px 6px; border-radius: 4px; font-size: 14px; }
+  .row-del:hover { color: var(--red); background: var(--red-light); }
+
+  /* STATUS dot */
+  .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+  .dot-green { background: var(--green); }
+  .dot-red { background: var(--red); }
+  .dot-amber { background: var(--amber); }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 3rem; color: var(--text3); font-size: 13px; }
+
+  /* SCROLL TABLE */
+  .table-scroll { overflow-x: auto; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid.cols3 { grid-template-columns: 1fr 1fr; }
+    .caja-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">San Nicolás</div>
+    <div class="sub">Renacimiento · Gestión</div>
+    <div class="date-badge" id="current-date">Cargando...</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Análisis</div>
+    <div class="nav-item active" onclick="navigate('dashboard')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-section">Cargar datos</div>
+    <div class="nav-item" onclick="navigate('form-cobros')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1zm-1 10H3V4h10v8z"/><path d="M5 7h6v1H5zm0 2h4v1H5z"/></svg>
+      Nuevo cobro
+    </div>
+    <div class="nav-item" onclick="navigate('form-tickets')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M13 3H3a1 1 0 00-1 1v2.17A2 2 0 003 10V12a1 1 0 001 1h8a1 1 0 001-1v-2a2 2 0 001-3.83V4a1 1 0 00-1-1z"/></svg>
+      Ticket devuelto
+    </div>
+    <div class="nav-item" onclick="navigate('form-caja')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 5a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm7 4a1 1 0 100-2 1 1 0 000 2z"/></svg>
+      Movimiento caja
+    </div>
+    <div class="nav-section">Registros</div>
+    <div class="nav-item" onclick="navigate('lista-cobros')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12v1.5H2zm0 3h12v1.5H2zm0 3h8v1.5H2z"/></svg>
+      Ver cobros
+    </div>
+    <div class="nav-item" onclick="navigate('lista-tickets')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12v1.5H2zm0 3h12v1.5H2zm0 3h8v1.5H2z"/></svg>
+      Ver tickets
+    </div>
+    <div class="nav-item" onclick="navigate('lista-caja')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12v1.5H2zm0 3h12v1.5H2zm0 3h8v1.5H2z"/></svg>
+      Ver caja
+    </div>
+  </nav>
+  <div class="sidebar-footer">Agencia Samagata &nbsp;·&nbsp; v1.0</div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-meta" id="topbar-meta">Resumen general del día</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Exportar CSV</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmReset()">✕ Limpiar datos</button>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div id="page-dashboard" class="page active">
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Ingresos San Nicolás</div>
+        <div class="kpi-value" id="kpi-sn">$0</div>
+        <div class="kpi-sub">Cobros del día</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="background:var(--blue);width:0%" id="bar-sn"></div></div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Egresos Renacimiento</div>
+        <div class="kpi-value" id="kpi-ren">$0</div>
+        <div class="kpi-sub">Movimientos de caja</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="background:var(--red);width:0%" id="bar-ren"></div></div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Neto cochería</div>
+        <div class="kpi-value" id="kpi-net">$0</div>
+        <div class="kpi-sub">Cierre del día</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="background:var(--green);width:0%" id="bar-net"></div></div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">Total cobros</div>
+        <div class="kpi-value" id="kpi-cobros-total">$0</div>
+        <div class="kpi-sub" id="kpi-cobros-count">0 facturas</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="background:var(--amber);width:100%"></div></div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Tickets devueltos</div>
+        <div class="kpi-value" id="kpi-tick-total">$0</div>
+        <div class="kpi-sub" id="kpi-tick-count">0 tickets</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="background:var(--red);width:100%"></div></div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Neto cobros</div>
+        <div class="kpi-value" id="kpi-neto-cobros">$0</div>
+        <div class="kpi-sub">Cobros − tickets</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="background:var(--purple);width:100%"></div></div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Distribución por importe</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartDist" role="img" aria-label="Distribución de importes cobrados por monto"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Cobros por mes</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartMes" role="img" aria-label="Total cobrado por mes"></canvas></div>
+      </div>
+      <div class="chart-card full">
+        <div class="chart-title">Cobros acumulados (últimas facturas)</div>
+        <div class="chart-wrap" style="height:180px"><canvas id="chartLine" role="img" aria-label="Cobros acumulados por factura"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="table-header-title">Últimos cobros cargados</div>
+          <div class="table-header-meta">Los 10 más recientes</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('lista-cobros')">Ver todos →</button>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Socio</th><th>Mes</th><th>Agencia</th><th>Cobrador</th><th class="num">Importe</th><th>Factura</th><th>Estado</th></tr></thead>
+          <tbody id="tbody-recientes"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FORM COBROS ===== -->
+  <div id="page-form-cobros" class="page">
+    <div class="form-page">
+      <div id="alert-cobro" style="display:none" class="form-alert success">✓ Cobro guardado correctamente.</div>
+      <div class="form-card">
+        <div class="form-card-title">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="var(--blue)"><path d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1z"/></svg>
+          Cargar nuevo cobro
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Fecha</label>
+            <input type="date" id="c-fecha" />
+          </div>
+          <div class="form-group">
+            <label>Agencia</label>
+            <input type="text" id="c-agencia" placeholder="Ej: Samagata" />
+          </div>
+          <div class="form-group">
+            <label>N° Socio</label>
+            <input type="text" id="c-socio" placeholder="Ej: 893206" />
+          </div>
+          <div class="form-group">
+            <label>Mes cobrado</label>
+            <select id="c-mes">
+              <option value="">-- Seleccionar --</option>
+              <option value="1">Enero (01)</option><option value="2">Febrero (02)</option>
+              <option value="3">Marzo (03)</option><option value="4" selected>Abril (04)</option>
+              <option value="5">Mayo (05)</option><option value="6">Junio (06)</option>
+              <option value="7">Julio (07)</option><option value="8">Agosto (08)</option>
+              <option value="9">Septiembre (09)</option><option value="10">Octubre (10)</option>
+              <option value="11">Noviembre (11)</option><option value="12">Diciembre (12)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Importe ($)</label>
+            <input type="number" id="c-importe" placeholder="Ej: 33000" min="0" />
+          </div>
+          <div class="form-group">
+            <label>N° Factura</label>
+            <input type="text" id="c-factura" placeholder="Ej: 26" />
+          </div>
+          <div class="form-group">
+            <label>Cobrador</label>
+            <input type="text" id="c-cobrador" placeholder="Ej: Juana Romero" />
+          </div>
+          <div class="form-group">
+            <label>Empresa</label>
+            <select id="c-empresa">
+              <option value="San Nicolás">San Nicolás</option>
+              <option value="Renacimiento">Renacimiento</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Estado</label>
+            <select id="c-estado">
+              <option value="cobrado">Cobrado</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="anulado">Anulado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Observaciones</label>
+            <input type="text" id="c-obs" placeholder="Opcional..." />
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveCobro()">💾 Guardar cobro</button>
+          <button class="btn btn-ghost" onclick="clearFormCobro()">Limpiar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FORM TICKETS ===== -->
+  <div id="page-form-tickets" class="page">
+    <div class="form-page">
+      <div id="alert-ticket" style="display:none" class="form-alert success">✓ Ticket guardado correctamente.</div>
+      <div class="form-card">
+        <div class="form-card-title">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="var(--red)"><path d="M13 3H3a1 1 0 00-1 1v2.17A2 2 0 003 10V12a1 1 0 001 1h8a1 1 0 001-1v-2a2 2 0 001-3.83V4a1 1 0 00-1-1z"/></svg>
+          Cargar ticket devuelto
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Fecha</label>
+            <input type="date" id="t-fecha" />
+          </div>
+          <div class="form-group">
+            <label>Agencia</label>
+            <input type="text" id="t-agencia" placeholder="Ej: Samagata" />
+          </div>
+          <div class="form-group">
+            <label>N° Socio</label>
+            <input type="text" id="t-socio" placeholder="Ej: 889932" />
+          </div>
+          <div class="form-group">
+            <label>Mes</label>
+            <select id="t-mes">
+              <option value="">-- Seleccionar --</option>
+              <option value="1">Enero (01)</option><option value="2">Febrero (02)</option>
+              <option value="3" selected>Marzo (03)</option><option value="4">Abril (04)</option>
+              <option value="5">Mayo (05)</option><option value="6">Junio (06)</option>
+              <option value="7">Julio (07)</option><option value="8">Agosto (08)</option>
+              <option value="9">Septiembre (09)</option><option value="10">Octubre (10)</option>
+              <option value="11">Noviembre (11)</option><option value="12">Diciembre (12)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Importe ($)</label>
+            <input type="number" id="t-importe" placeholder="Ej: 28000" min="0" />
+          </div>
+          <div class="form-group">
+            <label>N° Ticket</label>
+            <input type="text" id="t-ticket" placeholder="Ej: 20" />
+          </div>
+          <div class="form-group">
+            <label>Motivo devolución</label>
+            <input type="text" id="t-motivo" placeholder="Ej: Socio ausente" />
+          </div>
+          <div class="form-group">
+            <label>Empresa</label>
+            <select id="t-empresa">
+              <option value="San Nicolás">San Nicolás</option>
+              <option value="Renacimiento">Renacimiento</option>
+            </select>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveTicket()">💾 Guardar ticket</button>
+          <button class="btn btn-ghost" onclick="clearFormTicket()">Limpiar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FORM CAJA ===== -->
+  <div id="page-form-caja" class="page">
+    <div class="form-page">
+      <div id="alert-caja" style="display:none" class="form-alert success">✓ Movimiento guardado.</div>
+      <div class="form-card">
+        <div class="form-card-title">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="var(--green)"><path d="M2 5a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm7 4a1 1 0 100-2 1 1 0 000 2z"/></svg>
+          Movimiento de caja
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Fecha</label>
+            <input type="date" id="ca-fecha" />
+          </div>
+          <div class="form-group">
+            <label>Agencia</label>
+            <input type="text" id="ca-agencia" placeholder="Ej: Samagata" />
+          </div>
+          <div class="form-group">
+            <label>Empresa</label>
+            <select id="ca-empresa">
+              <option value="San Nicolás">San Nicolás</option>
+              <option value="Renacimiento">Renacimiento</option>
+              <option value="Cochería">Cochería</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tipo de movimiento</label>
+            <select id="ca-tipo">
+              <option value="ING. FACTURAS">Ing. Facturas</option>
+              <option value="ING. POSNET">Ing. Posnet</option>
+              <option value="ING. TRANSFERENCIA">Ing. Transferencia</option>
+              <option value="ING. TICKET">Ing. Ticket</option>
+              <option value="DEPOSITO">Depósito</option>
+              <option value="EGRESO">Egreso</option>
+              <option value="CIERRE DIA">Cierre del día</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Importe ($)</label>
+            <input type="number" id="ca-importe" placeholder="Ej: 1078500" min="0" />
+          </div>
+          <div class="form-group">
+            <label>Banco (opcional)</label>
+            <input type="text" id="ca-banco" placeholder="Ej: Galicia" />
+          </div>
+          <div class="form-group">
+            <label>Tipo flujo</label>
+            <select id="ca-flujo">
+              <option value="ingreso">Ingreso</option>
+              <option value="egreso">Egreso</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Observaciones</label>
+            <input type="text" id="ca-obs" placeholder="Opcional..." />
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveCaja()">💾 Guardar movimiento</button>
+          <button class="btn btn-ghost" onclick="clearFormCaja()">Limpiar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LISTA COBROS ===== -->
+  <div id="page-lista-cobros" class="page">
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="table-header-title">Cobros registrados</div>
+          <div class="table-header-meta" id="cobros-meta">—</div>
+        </div>
+        <div class="table-controls">
+          <input class="search-input" type="text" id="search-cobros" placeholder="Buscar socio..." oninput="renderCobros()" style="width:140px">
+          <select class="filter-select" id="filter-mes" onchange="renderCobros()">
+            <option value="">Todos los meses</option>
+            <option value="1">Enero</option><option value="2">Feb</option>
+            <option value="3">Marzo</option><option value="4">Abril</option>
+            <option value="5">Mayo</option><option value="6">Jun</option>
+            <option value="7">Jul</option><option value="8">Ago</option>
+            <option value="9">Sep</option><option value="10">Oct</option>
+            <option value="11">Nov</option><option value="12">Dic</option>
+          </select>
+          <select class="filter-select" id="filter-importe" onchange="renderCobros()">
+            <option value="">Todos los importes</option>
+            <option value="25000">$25.000</option>
+            <option value="28000">$28.000</option>
+            <option value="30000">$30.000</option>
+            <option value="33000">$33.000</option>
+            <option value="38500">$38.500</option>
+            <option value="43000">$43.000</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>#</th><th>Fecha</th><th>Socio</th><th>Mes</th><th>Agencia</th><th>Cobrador</th><th>Empresa</th><th class="num">Importe</th><th>Factura</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="tbody-cobros"></tbody>
+          <tfoot><tr><td colspan="7">Total</td><td class="num" id="cobros-total-f"></td><td colspan="3"></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LISTA TICKETS ===== -->
+  <div id="page-lista-tickets" class="page">
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="table-header-title">Tickets devueltos</div>
+          <div class="table-header-meta" id="tickets-meta">—</div>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Fecha</th><th>Socio</th><th>Mes</th><th>Empresa</th><th class="num">Importe</th><th>Ticket N°</th><th>Motivo</th><th></th></tr></thead>
+          <tbody id="tbody-tickets"></tbody>
+          <tfoot><tr><td colspan="4">Total devuelto</td><td class="num" id="tickets-total"></td><td colspan="3"></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LISTA CAJA ===== -->
+  <div id="page-lista-caja" class="page">
+    <div class="caja-grid" id="caja-summary"></div>
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="table-header-title">Movimientos de caja</div>
+          <div class="table-header-meta" id="caja-meta">—</div>
+        </div>
+        <div class="table-controls">
+          <select class="filter-select" id="filter-caja-empresa" onchange="renderCaja()">
+            <option value="">Todas las empresas</option>
+            <option value="San Nicolás">San Nicolás</option>
+            <option value="Renacimiento">Renacimiento</option>
+            <option value="Cochería">Cochería</option>
+          </select>
+          <select class="filter-select" id="filter-caja-flujo" onchange="renderCaja()">
+            <option value="">Ingresos y egresos</option>
+            <option value="ingreso">Solo ingresos</option>
+            <option value="egreso">Solo egresos</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Fecha</th><th>Empresa</th><th>Agencia</th><th>Tipo</th><th>Banco</th><th>Flujo</th><th class="num">Importe</th><th></th></tr></thead>
+          <tbody id="tbody-caja"></tbody>
+          <tfoot><tr><td colspan="5"></td><td>Neto</td><td class="num" id="caja-neto"></td><td></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DELETE -->
+<div class="modal-backdrop" id="modal-del">
+  <div class="modal-box">
+    <div class="modal-title">¿Eliminar registro?</div>
+    <p style="font-size:13px;color:var(--text2)">Esta acción no se puede deshacer.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESET -->
+<div class="modal-backdrop" id="modal-reset">
+  <div class="modal-box">
+    <div class="modal-title" style="color:var(--red)">⚠ Limpiar todos los datos</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:.5rem">Esto borrará <strong>todos</strong> los cobros, tickets y movimientos cargados, incluyendo los datos preexistentes.</p>
+    <p style="font-size:13px;color:var(--text3)">¿Seguro que querés continuar?</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-reset').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-danger" onclick="resetAll()">Sí, limpiar todo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const SEED_COBROS = [
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—849',mes:4,importe:33000,factura:'01',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—6489',mes:4,importe:33000,factura:'02',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—6499',mes:4,importe:30000,factura:'03',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—6499',mes:4,importe:33000,factura:'04',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—7315',mes:4,importe:25000,factura:'05',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—7746',mes:4,importe:33000,factura:'06',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—2219',mes:4,importe:33000,factura:'07',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—529',mes:4,importe:25000,factura:'08',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—755',mes:4,importe:38500,factura:'09',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—84',mes:4,importe:38500,factura:'10',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—17',mes:4,importe:38500,factura:'11',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—10',mes:4,importe:43000,factura:'12',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—2',mes:4,importe:30000,factura:'13',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—1',mes:4,importe:30000,factura:'14',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:33000,factura:'15',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:33000,factura:'17',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:38500,factura:'18',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:38500,factura:'19',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:33000,factura:'20',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:25000,factura:'21',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:28000,factura:'22',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:38500,factura:'23',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:33000,factura:'24',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'—',mes:4,importe:25000,factura:'25',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'893206',mes:4,importe:33000,factura:'26',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'893221',mes:4,importe:38500,factura:'27',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'895644',mes:4,importe:33000,factura:'28',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'897670',mes:4,importe:33000,factura:'29',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'899241',mes:4,importe:33000,factura:'30',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'899671',mes:4,importe:43000,factura:'31',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'899836',mes:4,importe:28000,factura:'32',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'904797',mes:4,importe:28000,factura:'33',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'904936',mes:4,importe:28000,factura:'34',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'905695',mes:4,importe:28000,factura:'35',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'907254',mes:4,importe:43000,factura:'36',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'909012',mes:4,importe:28000,factura:'37',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'911731',mes:4,importe:33000,factura:'38',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'912302',mes:4,importe:33000,factura:'39',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'140612',mes:4,importe:33000,factura:'40',cobrador:'Juana Romero',empresa:'San Nicolás',estado:'cobrado',obs:''},
+];
+
+const SEED_TICKETS = [
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'889932',mes:3,importe:28000,ticket:'20',motivo:'',empresa:'San Nicolás'},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'889932',mes:4,importe:28000,ticket:'21',motivo:'',empresa:'San Nicolás'},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'913442',mes:3,importe:33000,ticket:'36',motivo:'',empresa:'San Nicolás'},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',socio:'913442',mes:4,importe:39000,ticket:'37',motivo:'',empresa:'San Nicolás'},
+];
+
+const SEED_CAJA = [
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',empresa:'San Nicolás',tipo:'ING. FACTURAS',banco:'',flujo:'ingreso',importe:1078500,obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',empresa:'Renacimiento',tipo:'EGRESO',banco:'',flujo:'egreso',importe:176850,obs:''},
+  {id:uid(),fecha:'2026-04-29',agencia:'Samagata',empresa:'Cochería',tipo:'CIERRE DIA',banco:'',flujo:'ingreso',importe:901650,obs:''},
+];
+
+let cobros = [], tickets = [], cajaMov = [];
+let pendingDelete = null, pendingDeleteType = null;
+let charts = {};
+
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function fmt(n) { return '$'+Math.round(n).toLocaleString('es-AR'); }
+function fmtMes(m) { return ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][+m]||m; }
+function fmtFecha(f) { if(!f) return '—'; const [y,m,d]=f.split('-'); return `${d}/${m}/${y}`; }
+
+// ── STORAGE ───────────────────────────────────────────────────────────────────
+function saveAll() {
+  localStorage.setItem('sn_cobros', JSON.stringify(cobros));
+  localStorage.setItem('sn_tickets', JSON.stringify(tickets));
+  localStorage.setItem('sn_caja', JSON.stringify(cajaMov));
+}
+
+function loadAll() {
+  try { const d = localStorage.getItem('sn_cobros'); cobros = d ? JSON.parse(d) : [...SEED_COBROS]; } catch(e) { cobros = [...SEED_COBROS]; }
+  try { const d = localStorage.getItem('sn_tickets'); tickets = d ? JSON.parse(d) : [...SEED_TICKETS]; } catch(e) { tickets = [...SEED_TICKETS]; }
+  try { const d = localStorage.getItem('sn_caja'); cajaMov = d ? JSON.parse(d) : [...SEED_CAJA]; } catch(e) { cajaMov = [...SEED_CAJA]; }
+}
+
+function resetAll() {
+  localStorage.removeItem('sn_cobros'); localStorage.removeItem('sn_tickets'); localStorage.removeItem('sn_caja');
+  cobros = [...SEED_COBROS]; tickets = [...SEED_TICKETS]; cajaMov = [...SEED_CAJA];
+  saveAll(); refreshAll();
+  document.getElementById('modal-reset').classList.remove('open');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+const PAGE_TITLES = {
+  'dashboard': ['Dashboard','Resumen general del día'],
+  'form-cobros': ['Nuevo cobro','Cargar un cobro manualmente'],
+  'form-tickets': ['Ticket devuelto','Registrar un ticket devuelto'],
+  'form-caja': ['Movimiento de caja','Ingresos y egresos de caja'],
+  'lista-cobros': ['Cobros registrados','Todos los cobros cargados'],
+  'lista-tickets': ['Tickets devueltos','Listado de tickets devueltos'],
+  'lista-caja': ['Movimientos de caja','Historial completo de caja'],
+};
+
+function navigate(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(n => { if(n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+name+"'")) n.classList.add('active'); });
+  const [title, meta] = PAGE_TITLES[name] || [name,''];
+  document.getElementById('topbar-title').textContent = title;
+  document.getElementById('topbar-meta').textContent = meta;
+  if(name==='dashboard') refreshDashboard();
+  if(name==='lista-cobros') renderCobros();
+  if(name==='lista-tickets') renderTickets();
+  if(name==='lista-caja') renderCaja();
+}
+
+// ── SAVE FORMS ────────────────────────────────────────────────────────────────
+function saveCobro() {
+  const f = v => document.getElementById(v).value.trim();
+  if(!f('c-socio') || !f('c-importe') || !f('c-mes')) { showAlert('alert-cobro','error','⚠ Completá al menos Socio, Mes e Importe.'); return; }
+  cobros.push({
+    id:uid(), fecha:f('c-fecha')||new Date().toISOString().split('T')[0],
+    agencia:f('c-agencia')||'Samagata', socio:f('c-socio'), mes:+f('c-mes'),
+    importe:+f('c-importe'), factura:f('c-factura'), cobrador:f('c-cobrador'),
+    empresa:f('c-empresa'), estado:f('c-estado'), obs:f('c-obs')
+  });
+  saveAll(); clearFormCobro(); showAlert('alert-cobro','success','✓ Cobro guardado correctamente.');
+}
+
+function saveTicket() {
+  const f = v => document.getElementById(v).value.trim();
+  if(!f('t-socio') || !f('t-importe') || !f('t-mes')) { showAlert('alert-ticket','error','⚠ Completá Socio, Mes e Importe.'); return; }
+  tickets.push({
+    id:uid(), fecha:f('t-fecha')||new Date().toISOString().split('T')[0],
+    agencia:f('t-agencia')||'Samagata', socio:f('t-socio'), mes:+f('t-mes'),
+    importe:+f('t-importe'), ticket:f('t-ticket'), motivo:f('t-motivo'), empresa:f('t-empresa')
+  });
+  saveAll(); clearFormTicket(); showAlert('alert-ticket','success','✓ Ticket guardado correctamente.');
+}
+
+function saveCaja() {
+  const f = v => document.getElementById(v).value.trim();
+  if(!f('ca-importe')) { showAlert('alert-caja','error','⚠ Completá el importe.'); return; }
+  cajaMov.push({
+    id:uid(), fecha:f('ca-fecha')||new Date().toISOString().split('T')[0],
+    agencia:f('ca-agencia')||'Samagata', empresa:f('ca-empresa'), tipo:f('ca-tipo'),
+    banco:f('ca-banco'), flujo:f('ca-flujo'), importe:+f('ca-importe'), obs:f('ca-obs')
+  });
+  saveAll(); clearFormCaja(); showAlert('alert-caja','success','✓ Movimiento guardado.');
+}
+
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'form-alert '+type; el.textContent = msg; el.style.display='flex';
+  setTimeout(()=>{ el.style.display='none'; }, 4000);
+}
+
+function clearFormCobro() {
+  ['c-socio','c-importe','c-factura','c-cobrador','c-obs'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('c-mes').value='4';
+  document.getElementById('c-empresa').value='San Nicolás';
+  document.getElementById('c-estado').value='cobrado';
+}
+function clearFormTicket() {
+  ['t-socio','t-importe','t-ticket','t-motivo'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('t-mes').value='3';
+}
+function clearFormCaja() {
+  ['ca-banco','ca-obs'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('ca-importe').value='';
+}
+
+// ── DELETE ────────────────────────────────────────────────────────────────────
+function askDelete(id, type) {
+  pendingDelete = id; pendingDeleteType = type;
+  document.getElementById('modal-del').classList.add('open');
+}
+function confirmDelete() {
+  if(pendingDeleteType==='cobro') cobros = cobros.filter(r=>r.id!==pendingDelete);
+  if(pendingDeleteType==='ticket') tickets = tickets.filter(r=>r.id!==pendingDelete);
+  if(pendingDeleteType==='caja') cajaMov = cajaMov.filter(r=>r.id!==pendingDelete);
+  saveAll(); closeModal();
+  if(pendingDeleteType==='cobro') renderCobros();
+  if(pendingDeleteType==='ticket') renderTickets();
+  if(pendingDeleteType==='caja') renderCaja();
+}
+function closeModal() { document.getElementById('modal-del').classList.remove('open'); }
+function confirmReset() { document.getElementById('modal-reset').classList.add('open'); }
+
+// ── RENDER TABLES ─────────────────────────────────────────────────────────────
+function estadoBadge(e) {
+  if(e==='cobrado') return '<span class="badge badge-green">cobrado</span>';
+  if(e==='pendiente') return '<span class="badge badge-amber">pendiente</span>';
+  if(e==='anulado') return '<span class="badge badge-red">anulado</span>';
+  return '<span class="badge badge-blue">'+e+'</span>';
+}
+
+function renderCobros() {
+  const q = (document.getElementById('search-cobros')||{}).value||'';
+  const mes = (document.getElementById('filter-mes')||{}).value||'';
+  const imp = (document.getElementById('filter-importe')||{}).value||'';
+  let rows = cobros.filter(r =>
+    (!q || r.socio.toLowerCase().includes(q.toLowerCase()) || r.factura.includes(q)) &&
+    (!mes || +r.mes===+mes) &&
+    (!imp || +r.importe===+imp)
+  );
+  const tb = document.getElementById('tbody-cobros');
+  if(!rows.length) { tb.innerHTML='<tr><td colspan="11" class="empty">No hay cobros que coincidan.</td></tr>'; }
+  else {
+    tb.innerHTML = rows.map((r,i)=>`<tr>
+      <td style="color:var(--text3);font-size:11px">${i+1}</td>
+      <td>${fmtFecha(r.fecha)}</td><td><strong>${r.socio}</strong></td>
+      <td>${fmtMes(r.mes)}</td><td>${r.agencia||'—'}</td><td>${r.cobrador||'—'}</td>
+      <td>${r.empresa}</td>
+      <td class="num" style="color:var(--green)">${fmt(r.importe)}</td>
+      <td><span class="badge badge-blue">${r.factura}</span></td>
+      <td>${estadoBadge(r.estado)}</td>
+      <td><button class="row-del" onclick="askDelete('${r.id}','cobro')">✕</button></td>
+    </tr>`).join('');
+  }
+  const total = rows.reduce((s,r)=>s+r.importe,0);
+  const tf = document.getElementById('cobros-total-f');
+  if(tf) tf.textContent = fmt(total);
+  const meta = document.getElementById('cobros-meta');
+  if(meta) meta.textContent = `${rows.length} registros · Total: ${fmt(total)}`;
+}
+
+function renderTickets() {
+  const tb = document.getElementById('tbody-tickets');
+  if(!tickets.length) { tb.innerHTML='<tr><td colspan="8" class="empty">No hay tickets devueltos.</td></tr>'; return; }
+  tb.innerHTML = tickets.map(r=>`<tr>
+    <td>${fmtFecha(r.fecha)}</td><td><strong>${r.socio}</strong></td>
+    <td>${fmtMes(r.mes)}</td><td>${r.empresa}</td>
+    <td class="num" style="color:var(--red)">${fmt(r.importe)}</td>
+    <td><span class="badge badge-amber">#${r.ticket}</span></td>
+    <td style="color:var(--text2)">${r.motivo||'—'}</td>
+    <td><button class="row-del" onclick="askDelete('${r.id}','ticket')">✕</button></td>
+  </tr>`).join('');
+  const total = tickets.reduce((s,r)=>s+r.importe,0);
+  document.getElementById('tickets-total').textContent = fmt(total);
+  document.getElementById('tickets-meta').textContent = `${tickets.length} tickets · Total: ${fmt(total)}`;
+}
+
+function renderCaja() {
+  const emp = (document.getElementById('filter-caja-empresa')||{}).value||'';
+  const flujo = (document.getElementById('filter-caja-flujo')||{}).value||'';
+  let rows = cajaMov.filter(r => (!emp||r.empresa===emp) && (!flujo||r.flujo===flujo));
+  const tb = document.getElementById('tbody-caja');
+  if(!rows.length) { tb.innerHTML='<tr><td colspan="8" class="empty">No hay movimientos.</td></tr>'; }
+  else {
+    tb.innerHTML = rows.map(r=>`<tr>
+      <td>${fmtFecha(r.fecha)}</td><td>${r.empresa}</td><td>${r.agencia||'—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${r.tipo}</td>
+      <td style="font-size:11px;color:var(--text3)">${r.banco||'—'}</td>
+      <td>${r.flujo==='ingreso'?'<span class="badge badge-green">ingreso</span>':'<span class="badge badge-red">egreso</span>'}</td>
+      <td class="num" style="color:${r.flujo==='ingreso'?'var(--green)':'var(--red)'}">${r.flujo==='egreso'?'−':''}${fmt(r.importe)}</td>
+      <td><button class="row-del" onclick="askDelete('${r.id}','caja')">✕</button></td>
+    </tr>`).join('');
+  }
+  const neto = rows.reduce((s,r)=>s+(r.flujo==='ingreso'?r.importe:-r.importe),0);
+  document.getElementById('caja-neto').textContent = (neto>=0?'':'-') + fmt(Math.abs(neto));
+  document.getElementById('caja-meta').textContent = `${rows.length} movimientos`;
+
+  // caja summary cards
+  const empresas = ['San Nicolás','Renacimiento','Cochería'];
+  const summ = document.getElementById('caja-summary');
+  if(summ) {
+    summ.innerHTML = empresas.map(emp=>{
+      const movs = cajaMov.filter(r=>r.empresa===emp);
+      const ing = movs.filter(r=>r.flujo==='ingreso').reduce((s,r)=>s+r.importe,0);
+      const eg = movs.filter(r=>r.flujo==='egreso').reduce((s,r)=>s+r.importe,0);
+      const color = emp==='San Nicolás'?'var(--blue)':emp==='Renacimiento'?'var(--red)':'var(--green)';
+      return `<div class="caja-card">
+        <div class="caja-empresa">${emp}</div>
+        ${ing?`<div class="caja-tipo">Ingresos</div><div class="caja-monto" style="color:var(--green)">${fmt(ing)}</div>`:''}
+        ${eg?`<div class="caja-tipo" style="margin-top:6px">Egresos</div><div class="caja-monto" style="color:var(--red)">${fmt(eg)}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function refreshDashboard() {
+  const totalCobros = cobros.reduce((s,r)=>s+r.importe,0);
+  const totalTick = tickets.reduce((s,r)=>s+r.importe,0);
+  const sn = cajaMov.filter(r=>r.empresa==='San Nicolás'&&r.flujo==='ingreso').reduce((s,r)=>s+r.importe,0);
+  const ren = cajaMov.filter(r=>r.empresa==='Renacimiento'&&r.flujo==='egreso').reduce((s,r)=>s+r.importe,0);
+  const net = cajaMov.filter(r=>r.empresa==='Cochería').reduce((s,r)=>s+r.importe,0);
+  const max = Math.max(sn, ren, net, totalCobros, totalTick, 1);
+
+  document.getElementById('kpi-sn').textContent = fmt(sn);
+  document.getElementById('kpi-ren').textContent = fmt(ren);
+  document.getElementById('kpi-net').textContent = fmt(net);
+  document.getElementById('kpi-cobros-total').textContent = fmt(totalCobros);
+  document.getElementById('kpi-cobros-count').textContent = cobros.length+' facturas';
+  document.getElementById('kpi-tick-total').textContent = fmt(totalTick);
+  document.getElementById('kpi-tick-count').textContent = tickets.length+' tickets';
+  document.getElementById('kpi-neto-cobros').textContent = fmt(totalCobros - totalTick);
+  document.getElementById('bar-sn').style.width = Math.round(sn/max*100)+'%';
+  document.getElementById('bar-ren').style.width = Math.round(ren/max*100)+'%';
+  document.getElementById('bar-net').style.width = Math.round(net/max*100)+'%';
+
+  // recent 10 cobros
+  const recent = [...cobros].slice(-10).reverse();
+  const tb = document.getElementById('tbody-recientes');
+  if(!recent.length) tb.innerHTML='<tr><td colspan="7" class="empty">No hay cobros.</td></tr>';
+  else tb.innerHTML = recent.map(r=>`<tr>
+    <td><strong>${r.socio}</strong></td><td>${fmtMes(r.mes)}</td>
+    <td>${r.agencia||'—'}</td><td>${r.cobrador||'—'}</td>
+    <td class="num" style="color:var(--green)">${fmt(r.importe)}</td>
+    <td><span class="badge badge-blue">${r.factura}</span></td>
+    <td>${estadoBadge(r.estado)}</td>
+  </tr>`).join('');
+
+  buildCharts(totalCobros, totalTick);
+}
+
+function buildCharts(totalCobros, totalTick) {
+  // Chart 1: distribución importes
+  const impCounts = {};
+  cobros.forEach(r=>{ const k=fmt(r.importe); impCounts[k]=(impCounts[k]||0)+1; });
+  const labels1 = Object.keys(impCounts);
+  const data1 = Object.values(impCounts);
+  const colors1 = ['#3d8ef8','#2ec98a','#f59e0b','#f05252','#a78bfa','#38bdf8','#fb923c'];
+
+  if(charts.dist) charts.dist.destroy();
+  charts.dist = new Chart(document.getElementById('chartDist'), {
+    type:'doughnut',
+    data:{ labels:labels1, datasets:[{data:data1, backgroundColor:colors1.slice(0,labels1.length), borderWidth:0}] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:true, position:'right', labels:{color:'#8e99b5',font:{size:11},boxWidth:10,padding:8} } } }
+  });
+
+  // Chart 2: por mes
+  const mesTotals = {};
+  cobros.forEach(r=>{ const k=fmtMes(r.mes); mesTotals[k]=(mesTotals[k]||0)+r.importe; });
+  const mKeys = Object.keys(mesTotals);
+  const mVals = Object.values(mesTotals);
+
+  if(charts.mes) charts.mes.destroy();
+  charts.mes = new Chart(document.getElementById('chartMes'), {
+    type:'bar',
+    data:{ labels:mKeys, datasets:[{label:'Cobrado',data:mVals,backgroundColor:'#3d8ef8',borderRadius:4}] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ x:{ticks:{color:'#596175',font:{size:10}},grid:{color:'rgba(42,51,74,.5)'}}, y:{ticks:{color:'#596175',font:{size:10},callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'rgba(42,51,74,.5)'}} } }
+  });
+
+  // Chart 3: acumulado
+  let acc = 0;
+  const accData = cobros.map(r=>{ acc+=r.importe; return acc; });
+  const accLabels = cobros.map((_,i)=>'F'+(i+1));
+
+  if(charts.line) charts.line.destroy();
+  charts.line = new Chart(document.getElementById('chartLine'), {
+    type:'line',
+    data:{ labels:accLabels, datasets:[{label:'Acumulado',data:accData,borderColor:'#2ec98a',pointRadius:0,fill:true,backgroundColor:'rgba(46,201,138,.07)',tension:.4}] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ x:{ticks:{color:'#596175',font:{size:9},autoSkip:true,maxTicksLimit:12},grid:{display:false}}, y:{ticks:{color:'#596175',font:{size:10},callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'rgba(42,51,74,.5)'}} } }
+  });
+}
+
+function refreshAll() { refreshDashboard(); }
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  let csv = 'COBROS\nFecha,Socio,Mes,Agencia,Cobrador,Empresa,Importe,Factura,Estado\n';
+  csv += cobros.map(r=>[r.fecha,r.socio,r.mes,r.agencia,r.cobrador,r.empresa,r.importe,r.factura,r.estado].join(',')).join('\n');
+  csv += '\n\nTICKETS DEVUELTOS\nFecha,Socio,Mes,Empresa,Importe,Ticket,Motivo\n';
+  csv += tickets.map(r=>[r.fecha,r.socio,r.mes,r.empresa,r.importe,r.ticket,r.motivo].join(',')).join('\n');
+  csv += '\n\nMOVIMIENTOS CAJA\nFecha,Empresa,Agencia,Tipo,Flujo,Importe\n';
+  csv += cajaMov.map(r=>[r.fecha,r.empresa,r.agencia,r.tipo,r.flujo,r.importe].join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='san_nicolas_datos.csv'; a.click();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', ()=>{
+  const now = new Date();
+  document.getElementById('current-date').textContent =
+    now.toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'});
+  // Set today's date in all date inputs
+  const hoy = now.toISOString().split('T')[0];
+  ['c-fecha','t-fecha','ca-fecha'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=hoy; });
+  // Set default agencia
+  ['c-agencia','t-agencia','ca-agencia'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value='Samagata'; });
+
+  loadAll();
+  refreshDashboard();
+});
+</script>
+</body>
+</html>
