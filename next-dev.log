@@ -1,0 +1,13 @@
+
+> san-nicolas-cajas-app@0.1.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.18.10:3000
+- Environments: .env
+✓ Ready in 724ms
+Creating turbopack project { dir: 'C:\\wamp64\\www\\San_Nicolas-Cajas_App', testMode: true }
+
+ GET / 200 in 583ms (next.js: 251ms, application-code: 332ms)
+ GET / 200 in 98ms (next.js: 9ms, application-code: 89ms)
